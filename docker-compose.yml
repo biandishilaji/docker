@@ -1,0 +1,69 @@
+version: '3'
+services:
+
+  #PHP Service
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: digitalocean.com/php
+    container_name: php
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: php
+      SERVICE_TAGS: dev
+    working_dir: /srv/www
+    volumes:
+      - /opt/infra:/srv/infra
+      - /opt/logs:/srv/logs
+      - /opt:/srv
+      - /opt/www:/srv/www:cached
+      - /opt/infra/php/php.ini:/usr/local/etc/php/conf.d/php.ini
+    networks:
+      - network
+    links:
+      - mysql:mysql
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+     - "3306:3306"
+    environment:
+        MYSQL_ROOT_PASSWORD: 12345    
+    networks:
+     - network    
+
+  #Nginx Service
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8000:8000"      
+      - "80:80"      
+    extra_hosts:
+      - "localhost:127.17.0.2"  
+    volumes:
+      - /opt:/srv:cached
+      - /tmp:/tmp
+      - /opt/infra/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - network
+      #Nginx Service
+  cache:
+    image: redis:latest
+    container_name: cache
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "6379:6379"
+    networks:
+      - network
+#Docker Networks
+networks:
+  network:
+    driver: bridge
